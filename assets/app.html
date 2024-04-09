@@ -1,0 +1,61 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="stylesheet.css" rel="stylesheet">
+  <title>Ultralight Clock</title>
+</head>
+
+<body>
+
+<div>
+  <button id="aboutButton" onclick="menu.classList.toggle('hidden')">About</button>
+  <div id="menu" class="grid-rows-2 hidden absolute">
+    <button onclick="openInfo()">Help</button>
+  </div>
+</div>
+
+<div class="grid grid-cols-7">
+  <div id="pinned" class="col-span-2 bg-[#000]">
+    <div class="grid grid-cols-3 text-white">
+      <span>Timezone short</span>
+      <span>12:00</span>
+      <button onclick="">🗑️</button>
+    </div>
+  </div>
+
+  <div class="col-span-5 grid grid-rows-4">
+    <label class="m-auto">
+      <input id="timezone" type="range" max="12"  min="-12" onchange="changeTime(this.value)">
+      <div id="timezoneLabel">Zoning deez nuts</div>
+    </label>
+
+    <span id="clock" class="m-auto">
+      00:00:00
+    </span>
+
+    <span id="date" class="m-auto">
+      Thursday, Jan 1 1970
+    </span>
+
+    <button onclick="addStarredTimezone(timezone.value)">⭐</button>
+  </div>
+</div>
+
+</body>
+
+<script>
+  addEventListener('click', (e) => e.target.id !== 'aboutButton' && menu.classList.add('hidden'));
+
+  function addStarredTimezone(timezone) {
+    const div = document.createElement('div');
+    div.classList.add('grid', 'grid-cols-3', 'text-white');
+    div.setAttribute('data-timezone', timezone);
+    div.innerHTML = `
+      <span>${timezone}</span>
+      <span data-time="${timezone}">12:00</span>
+      <button onclick="document.querySelector('div[data-timezone=${timezone}').remove()">🗑️</button>
+    `;
+    pinned.appendChild(div);
+    addTimezone(timezone);
+  }
+</script>
