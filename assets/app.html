@@ -5,57 +5,198 @@
   <title>Ultralight Clock</title>
 </head>
 
-<body>
+<body class="flex flex-col bg-[#222222] text-[#dddddd]">
 
-<div>
-  <button id="aboutButton" onclick="menu.classList.toggle('hidden')">About</button>
-  <div id="menu" class="grid-rows-2 hidden absolute">
-    <button onclick="openInfo()">Help</button>
+<section class="bg-[#1b1b1b] w-full h-6 flex flex-row items-center">
+  <button id="fileButton" class="hover:bg-[#101010] px-1.5" onclick="fileDropdown.classList.toggle('hidden')">Файл</button>
+
+  <div id="fileDropdown" class="absolute top-6 bg-[#1b1b1b] z-10 h-auto w-[140px] hidden">
+    <button class="bg-[#1b1b1b] hover:bg-[#101010] px-1.5 w-full text-left" onclick="shutdown()">Закрити</button>
   </div>
-</div>
 
-<div class="grid grid-cols-7">
-  <div id="pinned" class="col-span-2 bg-[#000]">
-    <div class="grid grid-cols-3 text-white">
-      <span>Timezone short</span>
-      <span>12:00</span>
-      <button onclick="">🗑️</button>
+  <button class="hover:bg-[#101010] px-1.5" onclick="openAbout()">Детальніше</button>
+</section>
+
+<section class="w-full bg-[#1f1f1f]">
+  <button onclick="addStarredTimezone(+timezone.value)" class="px-4 py-2 rounded">
+    <svg class="transition-colors duration-200 text-[#cdcdcd] hover:text-green-500" width="24" height="24" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 4C11.4477 4 11 4.44772 11 5V11H5C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13H11V19C11 19.5523 11.4477 20 12 20C12.5523 20 13 19.5523 13 19V13H19C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11H13V5C13 4.44772 12.5523 4 12 4Z" fill="currentColor" />
+    </svg>
+  </button>
+</section>
+
+<main class="flex-1 w-full flex flex-row items-center">
+  <div class="w-[400px]">
+    <div id="pinned" class="mt-5 p-2 max-h-[90%] overflow-y-auto" > 
     </div>
   </div>
 
-  <div class="col-span-5 grid grid-rows-4">
-    <label class="m-auto">
-      <input id="timezone" type="range" max="12"  min="-12" onchange="changeTime(this.value)">
-      <div id="timezoneLabel">Zoning deez nuts</div>
+  <div class="flex flex-col justify-center items-center text-center min-h-[80%] p-5 m-auto">
+    <label class="block mb-4 w-[600px]">
+      <span id="timezoneLabel">Zone</span>
+      <input id="timezone" type="range" max="12" min="-12" value="0" step="1" class="w-full" onchange="tick()">
+      <div class="p-1 flex flex-row w-[calc(100%+20px)] -translate-x-2 text-xs font-semibold antialiased">
+        <div class="space-x-1">
+          <span class="">-12</span>
+          <span class=" ">-11</span>
+          <span class=" ">-10</span>
+        </div>
+
+        <div class="ml-3 space-x-2">
+          <span class=" ">-9</span>
+          <span class=" ">-8</span>
+        </div>
+
+        <div class="ml-3.5 space-x-2.5">
+          <span class="">-7</span>
+          <span class="">-6</span>
+          <span class="">-5</span>
+          <span class="">-4</span>
+          <span class=" ">-3</span>
+          <span class=" ">-2</span>
+          <span class=" ">-1</span>
+        </div>
+
+        <div>
+          <span class="ml-[18px]">0</span>
+        </div>
+
+        <div class="ml-3 space-x-2">
+          <span class=" ">+1</span>
+          <span class=" ">+2</span>
+          <span class=" ">+3</span>
+          <span class=" ">+4</span>
+          <span class=" ">+5</span>
+          <span class=" ">+6</span>
+        </div>
+        <div class="ml-2.5 space-x-2">
+          <span class=" ">+7</span>
+          <span class=" ">+8</span>
+          <span class=" ">+9</span>
+        </div>
+        <div class="ml-1 space-x-0.5">
+          <span class=" ">+10</span>
+          <span class=" ">+11</span>
+        </div>
+        <span class=" ">+12</span>
+      </div>
     </label>
 
-    <span id="clock" class="m-auto">
-      00:00:00
-    </span>
+    <span id="clock" class="block text-8xl mb-2">00:00:00</span>
 
-    <span id="date" class="m-auto">
-      Thursday, Jan 1 1970
-    </span>
-
-    <button onclick="addStarredTimezone(timezone.value)">⭐</button>
+    <span id="date" class="block text-lg ">Thursday, Jan 1 1970</span>
   </div>
-</div>
+</main>
+ 
+<section class="bg-[#1b1b1b] text-white">
+  <p id="statusClock" class="ml-1">00:00:00</p>
+</section>
 
 </body>
 
 <script>
-  addEventListener('click', (e) => e.target.id !== 'aboutButton' && menu.classList.add('hidden'));
+  const ianaNotations = [
+    'Etc/GMT-12', 'Etc/GMT-11', 'Etc/GMT-10', 'Etc/GMT-9', 'Etc/GMT-8', 'Etc/GMT-7', 'Etc/GMT-6', 'Etc/GMT-5',
+    'Etc/GMT-4', 'Etc/GMT-3', 'Etc/GMT-2', 'Etc/GMT-1', 'Etc/GMT', 'Etc/GMT+1', 'Etc/GMT+2', 'Etc/GMT+3', 'Etc/GMT+4',
+    'Etc/GMT+5', 'Etc/GMT+6', 'Etc/GMT+7', 'Etc/GMT+8', 'Etc/GMT+9', 'Etc/GMT+10', 'Etc/GMT+11', 'Etc/GMT+12',
+  ].reverse();
+
+  const timezones = [
+    'GMT-12', 'GMT-11', 'GMT-10', 'GMT-9', 'GMT-8', 'GMT-7', 'GMT-6', 'GMT-5', 'GMT-4', 'GMT-3', 'GMT-2', 'GMT-1',
+    'GMT', 'GMT+1', 'GMT+2', 'GMT+3', 'GMT+4', 'GMT+5', 'GMT+6', 'GMT+7', 'GMT+8', 'GMT+9', 'GMT+10', 'GMT+11', 'GMT+12',
+  ];
+
+  const timezoneDescription = [
+    'New Zealand',
+    'Some shit idfk',
+    'Hawaii, French Polynesia, Jarvis Island',
+    'Some shit idfk',
+    'Alaska',
+    'California, Washington, British Columbia',
+    'Mexico, New Mexico',
+    'Texas, Chicago',
+    'Venezuela, Chile, Bolivia',
+    'Brazil, Argentina',
+    'Atlantis',
+    'Greenland, Portugal',
+    'Iceland',
+    'Britain, Iceland',
+    'Germany, Poland, France',
+    'Israel, Ukraine, Turkey',
+    'Saudi Arabia',
+    'Pakistan, India',
+    'Bangladesh, Myanmar',
+    'Thailand, Vietnam',
+    'China, Philippines',
+    'Japan, Korea',
+    'Australia, Papua New Guinea',
+    'New Caledonia, Fiji, Tonga',
+    'New Zealand'
+  ];
+
+  const offset = new Date().getTimezoneOffset() / -60;
+  timezone.value = offset;
+
+  addEventListener('click', (e) => e.target.id !== 'fileButton' && fileDropdown.classList.add('hidden'));
+
+  function getFormattedTime(timeZone) {
+    return new Date().toLocaleTimeString([], {timeZone, hour: '2-digit', minute: '2-digit'});
+  }
 
   function addStarredTimezone(timezone) {
+    const iana = ianaNotations[timezone + 12];
+    if (pinned.querySelector(`div[data-timezone="${iana}"]`)) {
+      return;
+    }
+
     const div = document.createElement('div');
-    div.classList.add('grid', 'grid-cols-3', 'text-white');
-    div.setAttribute('data-timezone', timezone);
+    div.className = 'flex justify-between items-center bg-[#cdcdcd] h-24 p-1 mt-3 font-semibold text-[17px] text-[#222222] text-end rounded-lg shadow-lg';
+    div.setAttribute('data-timezone', iana);
     div.innerHTML = `
-      <span>${timezone}</span>
-      <span data-time="${timezone}">12:00</span>
-      <button onclick="document.querySelector('div[data-timezone=${timezone}').remove()">🗑️</button>
+      <span class="w-auto">${timezones[timezone + 12]}</span>
+      <span data-timezone="${timezone}">${getFormattedTime(iana)}</span>
+      <button>
+        <svg class="transition-colors duration-200 hover:text-red-500" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6.2253 4.81108C5.83477 4.42056 5.20161 4.42056 4.81108 4.81108C4.42056 5.20161 4.42056 5.83477 4.81108 6.2253L10.5858 12L4.81114 17.7747C4.42062 18.1652 4.42062 18.7984 4.81114 19.1889C5.20167 19.5794 5.83483 19.5794 6.22535 19.1889L12 13.4142L17.7747 19.1889C18.1652 19.5794 18.7984 19.5794 19.1889 19.1889C19.5794 18.7984 19.5794 18.1652 19.1889 17.7747L13.4142 12L19.189 6.2253C19.5795 5.83477 19.5795 5.20161 19.189 4.81108C18.7985 4.42056 18.1653 4.42056 17.7748 4.81108L12 10.5858L6.2253 4.81108Z" fill="currentColor" />
+        </svg>
+      </button>
     `;
+    div.children[2].onclick = () => div.remove();
+    updateStarredTimezone(div);
     pinned.appendChild(div);
-    addTimezone(timezone);
   }
+
+  function updateStarredTimezone(div) {
+    div.children[1].textContent = getFormattedTime(div.getAttribute('data-timezone'));
+  }
+
+  function tick() {
+    timezoneLabel.innerText = timezoneDescription[+timezone.value + 12];
+    const time = new Date((Date.now() - offset * 60 * 60 * 1000) + timezone.value * 60 * 60 * 1000);
+    clock.textContent = time.toLocaleTimeString();
+    date.textContent = time.toLocaleDateString([], {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  setTimeout(
+    () => setInterval(
+      () => pinned.querySelectorAll('div').forEach(updateStarredTimezone),
+      1000 * 60
+    ),
+    (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds()
+  );
+
+  setTimeout(
+    () => setInterval(tick, 1000),
+    1000 - new Date().getMilliseconds()
+  );
+
+  setTimeout(
+    () => setInterval(() => statusClock.innerText = new Date().toTimeString(), 1000),
+    1000 - new Date().getMilliseconds()
+  );
 </script>

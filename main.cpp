@@ -1,25 +1,20 @@
 #include <AppCore/AppCore.h>
 #include <iostream>
-#include <functional>
-#include <map>
-#include <chrono>
 #include <fstream>
 #include "json.hpp"
 
 namespace ul = ultralight;
 
 using json = nlohmann::json;
+bool close_about = false;
 
-class Info : public ul::WindowListener, public ul::LoadListener, public ul::ViewListener {
+class About : public ul::WindowListener, public ul::LoadListener, public ul::ViewListener {
     ul::RefPtr<ul::Window> window;
     ul::RefPtr<ul::Overlay> overlay;
-
-    std::function<void()> onClose;
 public:
-    Info(ul::Monitor* monitor, std::function<void()> onClose)
-    : window{ ul::Window::Create(monitor, 450, 450, false, ul::kWindowFlags_Resizable | ul::kWindowFlags_Maximizable) }
+    About(ul::Monitor* monitor)
+    : window{ ul::Window::Create(monitor, 600, 720, false, ul::kWindowFlags_Titled) }
     , overlay{ ul::Overlay::Create(window, 1, 1, 0, 0) }
-    , onClose{ std::move(onClose) }
     {
         window->set_listener(this);
         overlay->view()->set_load_listener(this);
@@ -27,22 +22,42 @@ public:
 
         window->MoveToCenter();
         overlay->Resize(window->width(), window->height());
-        overlay->view()->LoadURL("file:///info.html");
+        overlay->view()->LoadURL("file:///about.html");
         overlay->Focus();
     }
 
+    void OnChangeTitle(ultralight::View *caller, const ultralight::String &title) override {
+        window->SetTitle(title.utf8().data());
+    }
+
+    void OnResize(ultralight::Window *, uint32_t width_px, uint32_t height_px) override {
+        overlay->Resize(width_px, height_px);
+    }
+
+    void OnDOMReady(ul::View *caller, uint64_t frame_id, bool is_main_frame, const ul::String &url) override {
+        using ul::JSCallback, ul::JSCallbackWithRetval;
+        ul::SetJSContext(caller->LockJSContext()->ctx());
+        auto global = ul::JSGlobalObject();
+
+        global["closeAbout"] = BindJSCallback(&About::close);
+    }
+
     void OnClose(ul::Window *w) override {
-        w->Close();
-        onClose();
+        //w->Close();
+        close_about = true;
     }
 
     bool OnKeyEvent(const ul::KeyEvent &evt) override {
         switch (evt.virtual_key_code) {
-            case 27: // Escape
+            case 27:
                 OnClose(window.get());
                 break;
         }
         return true;
+    }
+
+    void close(const ul::JSObject&, const ul::JSArgs&) {
+        OnClose(window.get());
     }
 };
 
@@ -51,72 +66,9 @@ class App : public ul::AppListener, public ul::WindowListener, public ul::LoadLi
     ul::RefPtr<ul::Window> window;
     ul::RefPtr<ul::Overlay> overlay;
 
-    Info* info_ptr{};
-    bool rizza = false;
+    About* about_ptr{};
 
-    std::map<long long, std::string> timeZones{
-        { -12, "'Etc/GMT-12'" },
-        { -11, "'Etc/GMT-11'" },
-        { -10, "'Etc/GMT-10'" },
-        { -9, "'Etc/GMT-9'" },
-        { -8, "'Etc/GMT-8'" },
-        { -7, "'Etc/GMT-7'" },
-        { -6, "'Etc/GMT-6'" },
-        { -5, "'Etc/GMT-5'" },
-        { -4, "'Etc/GMT-4'" },
-        { -3, "'Etc/GMT-3'" },
-        { -2, "'Etc/GMT-2'" },
-        { -1, "'Etc/GMT-1'" },
-        { 0, "'Etc/GMT'" },
-        { +1, "'Etc/GMT+1'" },
-        { +2, "'Etc/GMT+2'" },
-        { +3, "'Etc/GMT+3'" },
-        { +4, "'Etc/GMT+4'" },
-        { +5, "'Etc/GMT+5'" },
-        { +6, "'Etc/GMT+6'" },
-        { +7, "'Etc/GMT+7'" },
-        { +8, "'Etc/GMT+8'" },
-        { +9, "'Etc/GMT+9'" },
-        { +10, "'Etc/GMT+10'" },
-        { +11, "'Etc/GMT+11'" },
-        { +12, "'Etc/GMT+12'" },
-    };
-
-    std::map<long long, std::string> shortTimezone{
-        { -12, "GMT-12" },
-        { -11, "GMT-11" },
-        { -10, "GMT-10" },
-        { -9, "GMT-9" },
-        { -8, "GMT-8" },
-        { -7, "GMT-7" },
-        { -6, "GMT-6" },
-        { -5, "GMT-5" },
-        { -4, "GMT-4" },
-        { -3, "GMT-3" },
-        { -2, "GMT-2" },
-        { -1, "GMT-1" },
-        { 0, "GMT" },
-        { +1, "GMT+1" },
-        { +2, "GMT+2" },
-        { +3, "GMT+3" },
-        { +4, "GMT+4" },
-        { +5, "GMT+5" },
-        { +6, "GMT+6" },
-        { +7, "GMT+7" },
-        { +8, "GMT+8" },
-        { +9, "GMT+9" },
-        { +10, "GMT+10" },
-        { +11, "GMT+11" },
-        { +12, "GMT+12" },
-    };
-
-    std::chrono::time_point<std::chrono::tai_clock> time;
-    long long timezone = 0;
-
-    json config{
-        "timezone", 0,
-        "starred", {}
-    };
+    json config = json::array();
 public:
     App()
     : app{ ul::App::Create() }
@@ -133,12 +85,8 @@ public:
         overlay->view()->LoadURL("file:///app.html");
         overlay->Focus();
 
-        time = std::chrono::tai_clock::now();
-        std::cout << time << std::endl;
-
         if (std::ifstream file("config.json"); file) {
             file >> config;
-            timezone = config["timezone"];
         }
     }
 
@@ -147,25 +95,32 @@ public:
     }
 
     void OnUpdate() override {
-        if (rizza) {
-            delete info_ptr;
-            rizza = false;
+        if (close_about) {
+            ul::SetJSContext(overlay->view()->LockJSContext()->ctx());
+            delete about_ptr;
+            close_about = false;
         }
     }
 
     bool OnKeyEvent(const ul::KeyEvent &evt) override {
         switch (evt.virtual_key_code) {
-        case 112: // F1
-            openInfo();
-            break;
-        case 13: // Enter
-            ul::JSEval("process(input.value)");
-            break;
+            case 112: // F1
+                openAbout();
+                break;
         }
         return true;
     }
 
     void OnClose(ul::Window*) override {
+        auto starredTimezones = ul::JSEval("[...pinned.children].map(e => +[...e.children][1].getAttribute('data-timezone'))").ToArray();
+
+        auto timezones = json::array();
+        for (int i = 0; i < starredTimezones.length(); i++) {
+            timezones.push_back(starredTimezones[i].ToInteger());
+        }
+
+        std::ofstream("config.json") << timezones << std::endl;
+
         std::exit(0);
     }
 
@@ -178,7 +133,17 @@ public:
         ul::SetJSContext(caller->LockJSContext()->ctx());
         auto global = ul::JSGlobalObject();
 
-        global["changeTime"] = BindJSCallback(&App::changeTime);
+        global["openAbout"] = BindJSCallback(&App::openAbout);
+        global["shutdown"] = ul::JSCallback([](const ul::JSObject&, const ul::JSArgs&) {
+            std::exit(0);
+        });
+
+        auto addStarredTimezone = global["addStarredTimezone"].ToFunction();
+        if (config.is_array()) for (auto& timezone : config) {
+            if (timezone.is_number()) {
+                addStarredTimezone({(int) timezone});
+            }
+        }
     }
 
     void OnChangeCursor(ul::View *caller, ul::Cursor cursor) override {
@@ -194,14 +159,8 @@ public:
         std::cout << "Console: " << message.utf8().data() << " at line: " << line_number << ", column: " << column_number << std::endl;
     }
 
-    void openInfo(const ul::JSObject& = {}, const ul::JSArgs& = {}) {
-        info_ptr = new Info(app->main_monitor(), [this] { rizza = true; });
-    }
-
-    void changeTime(const ul::JSObject&, const ul::JSArgs& args) {
-        timezone = (long long) args[0].ToNumber();
-
-        ul::JSEval(("timezoneLabel.innerText = " + timeZones[timezone]).c_str());
+    void openAbout(const ul::JSObject& = {}, const ul::JSArgs& = {}) {
+        about_ptr = new About(app->main_monitor());
     }
 };
 
