@@ -22,7 +22,8 @@ public:
 
         window->MoveToCenter();
         overlay->Resize(window->width(), window->height());
-        overlay->view()->LoadURL("file:///about.html");
+#include "resources/about.inl"
+        overlay->view()->LoadHTML(rawData);
         overlay->Focus();
     }
 
@@ -82,7 +83,8 @@ public:
 
         window->MoveToCenter();
         overlay->Resize(window->width(), window->height());
-        overlay->view()->LoadURL("file:///app.html");
+#include "resources/app.inl"
+        overlay->view()->LoadHTML(rawData);
         overlay->Focus();
 
         if (std::ifstream file("config.json"); file) {
