@@ -59,8 +59,8 @@ namespace clockapp {
 			gbInfo = (gcnew System::Windows::Forms::GroupBox());
 			lblInfo = (gcnew System::Windows::Forms::Label());
 			closeButton = (gcnew System::Windows::Forms::Button());
-			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pbIcon))->BeginInit();
 			gbInfo->SuspendLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pbIcon))->BeginInit();
 			this->SuspendLayout();
 			// 
 			// lblRights
@@ -101,15 +101,6 @@ namespace clockapp {
 			lblName->TabIndex = 10;
 			lblName->Text = L"Супергодин";
 			// 
-			// pbIcon
-			// 
-			this->pbIcon->Location = System::Drawing::Point(10, 11);
-			this->pbIcon->Name = L"pbIcon";
-			this->pbIcon->Size = System::Drawing::Size(128, 128);
-			this->pbIcon->SizeMode = System::Windows::Forms::PictureBoxSizeMode::StretchImage;
-			this->pbIcon->TabIndex = 9;
-			this->pbIcon->TabStop = false;
-			// 
 			// gbInfo
 			// 
 			gbInfo->Controls->Add(lblInfo);
@@ -127,7 +118,7 @@ namespace clockapp {
 			lblInfo->Size = System::Drawing::Size(321, 104);
 			lblInfo->TabIndex = 7;
 			lblInfo->Text = L"Тема роботи \'\'\r\nЗастосунок виконано відповідно до індивідуального завдання\r\nЗасто"
-				L"сунок дозволяє\r\n1. бла бла\r\n2. бла бла\r\n3. бла бла\r\n4. бла бла\r\n5. бла бла";
+				L"сунок дозволяє\r\n1. бла бла\r\n2. бла бла\r\n3. бла бла\r\nasdasd\r\n5. бла бла";
 			// 
 			// closeButton
 			// 
@@ -138,7 +129,16 @@ namespace clockapp {
 			closeButton->TabIndex = 8;
 			closeButton->Text = L"Закрити";
 			closeButton->UseVisualStyleBackColor = true;
-			closeButton->Click += gcnew System::EventHandler(this, &AboutForm::btnClose_Click);
+			closeButton->Click += gcnew System::EventHandler(this, &AboutForm::OnCloseButtonClicked);
+			// 
+			// pbIcon
+			// 
+			this->pbIcon->Location = System::Drawing::Point(10, 11);
+			this->pbIcon->Name = L"pbIcon";
+			this->pbIcon->Size = System::Drawing::Size(128, 128);
+			this->pbIcon->SizeMode = System::Windows::Forms::PictureBoxSizeMode::StretchImage;
+			this->pbIcon->TabIndex = 9;
+			this->pbIcon->TabStop = false;
 			// 
 			// AboutForm
 			// 
@@ -153,23 +153,33 @@ namespace clockapp {
 			this->Controls->Add(lblName);
 			this->Controls->Add(this->pbIcon);
 			this->Controls->Add(closeButton);
+			this->FormBorderStyle = System::Windows::Forms::FormBorderStyle::FixedSingle;
+			this->MaximizeBox = false;
 			this->Name = L"AboutForm";
+			this->StartPosition = System::Windows::Forms::FormStartPosition::CenterParent;
 			this->Text = L"Про застосунок";
-			this->Load += gcnew System::EventHandler(this, &AboutForm::AboutForm_Load);
-			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pbIcon))->EndInit();
+			this->TopMost = true;
+			this->FormClosing += gcnew System::Windows::Forms::FormClosingEventHandler(this, &AboutForm::OnFormClosing);
+			this->Load += gcnew System::EventHandler(this, &AboutForm::OnFormLoad);
 			gbInfo->ResumeLayout(false);
 			gbInfo->PerformLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pbIcon))->EndInit();
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
 		}
 #pragma endregion
-		private: System::Void btnClose_Click(System::Object^ sender, System::EventArgs^ e) {
-			Hide();
+		private: System::Void OnCloseButtonClicked(System::Object^ sender, System::EventArgs^ e) {
+			Close();
 		}
 
-		private: System::Void AboutForm_Load(System::Object^ sender, System::EventArgs^ e) {
+		private: System::Void OnFormLoad(System::Object^ sender, System::EventArgs^ e) {
 			pbIcon->Image = Image::FromFile("about.png");
+		}
+
+		private: System::Void OnFormClosing(System::Object^ sender, System::Windows::Forms::FormClosingEventArgs^ e) {
+			e->Cancel = true;
+			Hide();
 		}
 	};
 }

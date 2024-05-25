@@ -15,7 +15,6 @@ namespace clockapp {
 	public ref class MainForm : public System::Windows::Forms::Form {
 	private:
 		AboutForm^ about = gcnew AboutForm();
-		array<int>^ timezones = gcnew array<int>(0);
 
 	public:
 		MainForm(void)
@@ -40,9 +39,6 @@ namespace clockapp {
 	private: System::Windows::Forms::Label^ timezoneLabel;
 	private: System::Windows::Forms::ListView^ timezoneList;
 	private: System::ComponentModel::BackgroundWorker^ minuteTicker;
-
-
-
 
 	private:
 		System::ComponentModel::Container ^components;
@@ -119,14 +115,14 @@ namespace clockapp {
 			додатиToolStripMenuItem->Name = L"додатиToolStripMenuItem";
 			додатиToolStripMenuItem->Size = System::Drawing::Size(126, 22);
 			додатиToolStripMenuItem->Text = L"Додати";
-			додатиToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::додатиToolStripMenuItem_Click);
+			додатиToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::addTimezone);
 			// 
 			// видалитиToolStripMenuItem
 			// 
 			видалитиToolStripMenuItem->Name = L"видалитиToolStripMenuItem";
 			видалитиToolStripMenuItem->Size = System::Drawing::Size(126, 22);
 			видалитиToolStripMenuItem->Text = L"Видалити";
-			видалитиToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::видалитиToolStripMenuItem_Click);
+			видалитиToolStripMenuItem->Click += gcnew System::EventHandler(this, &MainForm::removeSelectedItems);
 			// 
 			// закритиToolStripMenuItem
 			// 
@@ -166,7 +162,7 @@ namespace clockapp {
 			addTimezoneButton->Name = L"addTimezoneButton";
 			addTimezoneButton->Size = System::Drawing::Size(23, 22);
 			addTimezoneButton->Text = L"Додати";
-			addTimezoneButton->Click += gcnew System::EventHandler(this, &MainForm::addTimezoneButton_Click);
+			addTimezoneButton->Click += gcnew System::EventHandler(this, &MainForm::addTimezone);
 			// 
 			// removeTimezoneButton
 			// 
@@ -176,7 +172,7 @@ namespace clockapp {
 			removeTimezoneButton->Name = L"removeTimezoneButton";
 			removeTimezoneButton->Size = System::Drawing::Size(23, 22);
 			removeTimezoneButton->Text = L"Прибрати";
-			removeTimezoneButton->Click += gcnew System::EventHandler(this, &MainForm::removeTimezoneButton_Click);
+			removeTimezoneButton->Click += gcnew System::EventHandler(this, &MainForm::removeSelectedItems);
 			// 
 			// statusStrip
 			// 
@@ -301,24 +297,13 @@ namespace clockapp {
 		}
 #pragma endregion
 
-		private: System::Void updateLocalTimeLabel() {
-			localTimeLabel->Text = "UTC: " + Clock::Instance.FormatTime("hh:mm:ss");
-		}
-
-		private: System::Void updateTimeTable() {
-			for each (ListViewItem ^ item in timezoneList->Items) {
-				int timezone = Int32::Parse(item->Text->Substring(3));
-				item->GetSubItemAt(1, 0)->Text = Clock::Instance.FormatTime("HH:mm", timezone);
-			}
-		}
-
-		private: System::Void removeSelectedItems() {
+		private: System::Void removeSelectedItems(System::Object^ sender, System::EventArgs^ e) {
 		   	for each (ListViewItem^ item in timezoneList->SelectedItems) {
 				timezoneList->Items->Remove(item);
 			}
 		}
 
-		private: System::Void addTimezone() {
+		private: System::Void addTimezone(System::Object^ sender, System::EventArgs^ e) {
 			auto currentTimezone = timezoneSlider->Value;
 
 			auto timezone = gcnew ListViewItem();
@@ -329,13 +314,9 @@ namespace clockapp {
 		}
 
 		private: System::Void MainForm_Load(System::Object^ sender, System::EventArgs^ e) {
-			secondsTicker->RunWorkerAsync();
-			updateTimeTable();
-			minuteTicker->RunWorkerAsync();
-			updateLocalTimeLabel();
-
 			timezoneSlider->Value = (DateTime::Now - DateTime::UtcNow).Hours;
-			timezoneSlider_Scroll(sender, e);
+			secondsTicker->RunWorkerAsync();
+			minuteTicker->RunWorkerAsync();
 		}
 
 		private: System::Void закритиToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
@@ -348,13 +329,11 @@ namespace clockapp {
 		}
 
 		private: System::Void secondsTicker_DoWork(System::Object^ sender, System::ComponentModel::DoWorkEventArgs^ e) {
-			Thread::Sleep(1000 - System::DateTime::Now.Millisecond);
-			while (true) {
-				updateLocalTimeLabel();
-				timezoneSlider_Scroll(sender, e);
-
-				Thread::Sleep(1000);
-			}
+			do {
+				localTimeLabel->Text = "UTC: " + Clock::Instance.FormatTime("hh:mm:ss");
+				timeLabel->Text = Clock::Instance.FormatTime("HH:mm:ss", timezoneSlider->Value);
+				Thread::Sleep(1000 - System::DateTime::Now.Millisecond);
+			} while (true);
 		}
 
 		private: System::Void timezoneSlider_Scroll(System::Object^ sender, System::EventArgs^ e) {
@@ -364,28 +343,14 @@ namespace clockapp {
 			dateLabel->Text = Clock::Instance.FormatTime("dddd, MMMM d, yyyy", timezone);
 		}
 
-		private: System::Void addTimezoneButton_Click(System::Object^ sender, System::EventArgs^ e) {
-			addTimezone();
-		}
-
-		private: System::Void removeTimezoneButton_Click(System::Object^ sender, System::EventArgs^ e) {
-			removeSelectedItems();
-		}
-
-		private: System::Void додатиToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
-			addTimezone();
-		}
-
-		private: System::Void видалитиToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
-			removeSelectedItems();
-		}
-
 		private: System::Void minuteTicker_DoWork(System::Object^ sender, System::ComponentModel::DoWorkEventArgs^ e) {
-			Thread::Sleep(60000 - System::DateTime::Now.Second * 1000);
-			while (true) {
-				updateTimeTable();
-				Thread::Sleep(60000);
-			}
+			do {
+				for each (ListViewItem ^ item in timezoneList->Items) {
+					int timezone = Int32::Parse(item->Text->Substring(3));
+					item->GetSubItemAt(1, 0)->Text = Clock::Instance.FormatTime("HH:mm", timezone);
+				}
+				Thread::Sleep(60000 - System::DateTime::Now.Second * 1000);
+			} while (true);
 		}
 	};
 }
